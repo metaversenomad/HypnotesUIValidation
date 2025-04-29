@@ -20,7 +20,7 @@ public class FootersStepDef {
     public void iOpenTheHomepage(String homepageUrl) {
         System.out.println("[DEBUG] Opening homepage: " + homepageUrl);
         driver.get(homepageUrl);
-        mainWindow = driver.getWindowHandle();cqqq
+        mainWindow = driver.getWindowHandle();
     }
 
     @When("I click on the {string} footer item")
