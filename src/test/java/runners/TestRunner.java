@@ -11,7 +11,7 @@ import org.junit.runner.RunWith;
                 "rerun:target/rerun.txt",
         },
         features = "src/test/resources/features",
-        glue = "step_definitions",
+        glue = {"step_definitions", "hooks"},
         dryRun = false,
         tags = "@smoke",
         publish = true

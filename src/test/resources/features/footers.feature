@@ -5,15 +5,8 @@ Feature: Footer Link and Social Media Navigation
   I want to navigate through the footer links and social media icons
   So that I can access different parts of the website and social media pages
 
-  Background:
-    Given I open the "https://hypnotes.net" homepage
-
-  # Footer linklerinin testi
-  Scenario Outline: Validate footer link redirects correctly
-    When I click on the "<footerItem>" footer item
-    Then I should be redirected to a page containing "<expectedUrlPart>"
-
-    Examples:
+  Scenario: Validate multiple footer link redirects correctly
+    When I click on the following footer items:
       | footerItem                                | expectedUrlPart                |
       | Product Demo                              | youtube                        |
       | FAQs                                      | faq                            |
@@ -34,12 +27,8 @@ Feature: Footer Link and Social Media Navigation
       | Billing and Invoicing                     | billing                        |
       | Free Secure Telehealth Video Conferencing | telehealth                     |
 
-  # Sosyal medya ikonları testi
-  Scenario Outline: Validate social media icon redirects correctly
-    When I click on the "<socialMedia>" social media icon
-    Then I should be redirected to a page containing "<socialMediaUrlPart>"
-
-    Examples:
+  Scenario: Validate social media icon redirects correctly
+    When I click on the following social media icons:
       | socialMedia | socialMediaUrlPart |
       | facebook    | facebook           |
       | linkedin    | linkedin           |

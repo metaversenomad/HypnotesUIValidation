@@ -1,123 +1,115 @@
 package step_definitions;
 
-import io.cucumber.java.en.*;
-import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.*;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.When;
 import org.junit.Assert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import pages.FooterPage;
 import utils.DriverUtils;
-import utils.BrowserUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class FootersStepDef {
+
     private final FooterPage footerPage = new FooterPage();
     private final WebDriver driver = DriverUtils.getDriver();
-    private String mainWindow;
+    // capture main window handle once, so it's never null
+    private final String mainWindow = driver.getWindowHandle();
 
-    @Given("I open the {string} homepage")
-    public void iOpenTheHomepage(String homepageUrl) {
-        System.out.println("[DEBUG] Opening homepage: " + homepageUrl);
-        driver.get(homepageUrl);
-        mainWindow = driver.getWindowHandle();
-    }
+    @When("I click on the following footer items:")
+    public void iClickOnTheFollowingFooterItems(DataTable table) {
+        List<Map<String, String>> rows = table.asMaps();
 
-    @When("I click on the {string} footer item")
-    public void iClickOnTheFooterItem(String footerItem) {
-        // 1) Elemanı bul
-        WebElement footerDiv = null;
-        for (WebElement item : footerPage.footerLinks) {
-            String text = item.getText().trim();
-            System.out.println("[DEBUG] Scanning footer link: \"" + text + "\"");
-            if (text.equalsIgnoreCase(footerItem)) {
-                footerDiv = item;
-                System.out.println("[DEBUG] Matched footer link: " + text);
-                break;
+        for (Map<String, String> row : rows) {
+            String footerItem    = row.get("footerItem");
+            String expectedUrl   = row.get("expectedUrlPart");
+
+            // 1) find the footer link element
+            WebElement link = footerPage.footerLinks.stream()
+                    .filter(e -> e.getText().trim().equalsIgnoreCase(footerItem))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Footer link not found: " + footerItem));
+
+            // 2) extract href (or from its ancestor <a>)
+            String href = link.getAttribute("href");
+            if (href == null || href.isBlank()) {
+                href = link.findElement(By.xpath("ancestor::a[1]")).getAttribute("href");
             }
+
+            // 3) remember existing window handles
+            Set<String> before = driver.getWindowHandles();
+
+            // 4) open link in new tab
+            ((JavascriptExecutor) driver)
+                    .executeScript("window.open(arguments[0], '_blank');", href);
+
+            // 5) switch to the newly opened tab
+            Set<String> after = driver.getWindowHandles();
+            after.removeAll(before);
+            String newHandle = after.iterator().next();
+            driver.switchTo().window(newHandle);
+
+            // 6) wait for navigation and assert URL
+            new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.urlContains(expectedUrl));
+            Assert.assertTrue(
+                    "Expected URL to contain '" + expectedUrl + "', but was: " + driver.getCurrentUrl(),
+                    driver.getCurrentUrl().toLowerCase().contains(expectedUrl.toLowerCase())
+            );
+
+            // 7) close tab and return to main window
+            driver.close();
+            driver.switchTo().window(mainWindow);
         }
-        Assert.assertNotNull("Footer link bulunamadı: " + footerItem, footerDiv);
-
-        // 2) href tespit et (div içi veya parent <a>)
-        WebElement anchor = footerDiv;
-        String href = footerDiv.getAttribute("href");
-        if (href == null || href.isBlank()) {
-            anchor = footerDiv.findElement(By.xpath("ancestor::a[1]"));
-            href = anchor.getAttribute("href");
-        }
-        Assert.assertNotNull("href bulunamadı: " + footerItem, href);
-        System.out.println("[DEBUG] href = " + href);
-
-        // 3) window handle’ları capture et
-        Set<String> before = driver.getWindowHandles();
-        System.out.println("[DEBUG] before handles: " + before);
-
-        // 4) Yeni sekmede aç
-        ((JavascriptExecutor) driver)
-                .executeScript("window.open(arguments[0], '_blank');", href);
-
-        BrowserUtils.waitFor(1);
-
-        // 5) Yeni handle’ı bul
-        Set<String> after = driver.getWindowHandles();
-        System.out.println("[DEBUG] after handles: " + after);
-        after.removeAll(before);
-        Assert.assertFalse("Yeni pencere açılamadı", after.isEmpty());
-        String newHandle = after.iterator().next();
-        driver.switchTo().window(newHandle);
-        System.out.println("[DEBUG] Switched to footer window: " + driver.getCurrentUrl());
-
-        // 6) URL yüklenmesini bekle
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-                .until(ExpectedConditions.urlContains(href));
-        System.out.println("[DEBUG] Footer final URL: " + driver.getCurrentUrl());
     }
 
-    @When("I click on the {string} social media icon")
-    public void iClickOnTheSocialMediaIcon(String socialMedia) {
-        // 1) İkonu bul
-        WebElement icon;
-        switch (socialMedia.toLowerCase()) {
-            case "facebook":  icon = footerPage.facebookIcon;  break;
-            case "linkedin":  icon = footerPage.linkedinIcon;  break;
-            case "twitter":   icon = footerPage.twitterIcon;   break;
-            case "instagram": icon = footerPage.instagramIcon; break;
-            default: throw new IllegalArgumentException("Bilinmeyen sosyal ikon: " + socialMedia);
+    @When("I click on the following social media icons:")
+    public void iClickOnTheFollowingSocialMediaIcons(DataTable table) {
+        List<Map<String, String>> rows = table.asMaps();
+
+        for (Map<String, String> row : rows) {
+            String socialMedia  = row.get("socialMedia");
+            String expectedUrl  = row.get("socialMediaUrlPart");
+
+            // 1) select the correct icon element
+            WebElement icon;
+            switch (socialMedia.toLowerCase()) {
+                case "facebook":  icon = footerPage.facebookIcon;  break;
+                case "linkedin":  icon = footerPage.linkedinIcon;  break;
+                case "twitter":   icon = footerPage.twitterIcon;   break;
+                case "instagram": icon = footerPage.instagramIcon; break;
+                default: throw new RuntimeException("Unknown social icon: " + socialMedia);
+            }
+
+            // 2) open icon href in new tab and switch
+            String href = icon.getAttribute("href");
+            Set<String> before = driver.getWindowHandles();
+            ((JavascriptExecutor) driver)
+                    .executeScript("window.open(arguments[0], '_blank');", href);
+            Set<String> after = driver.getWindowHandles();
+            after.removeAll(before);
+            String newHandle = after.iterator().next();
+            driver.switchTo().window(newHandle);
+
+            // 3) wait for navigation and assert URL
+            new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.urlContains(expectedUrl));
+            Assert.assertTrue(
+                    "Expected URL to contain '" + expectedUrl + "', but was: " + driver.getCurrentUrl(),
+                    driver.getCurrentUrl().toLowerCase().contains(expectedUrl.toLowerCase())
+            );
+
+            // 4) close tab and return to main window
+            driver.close();
+            driver.switchTo().window(mainWindow);
         }
-
-        // 2) href ve handle’ları capture et
-        String href = icon.getAttribute("href");
-        Assert.assertNotNull("Sosyal ikon href boş: " + socialMedia, href);
-        System.out.println("[DEBUG] Sosyal icon href = " + href);
-        Set<String> before = driver.getWindowHandles();
-        System.out.println("[DEBUG] before handles: " + before);
-
-        // 3) Yeni sekmede aç
-        ((JavascriptExecutor) driver)
-                .executeScript("window.open(arguments[0], '_blank');", href);
-        BrowserUtils.waitFor(1);
-
-        // 4) Yeni handle’ı bul ve switch et
-        Set<String> after = driver.getWindowHandles();
-        System.out.println("[DEBUG] after handles: " + after);
-        after.removeAll(before);
-        Assert.assertFalse("Yeni sosyal pencere açılamadı", after.isEmpty());
-        String newHandle = after.iterator().next();
-        driver.switchTo().window(newHandle);
-        System.out.println("[DEBUG] Switched to social window: " + driver.getCurrentUrl());
-    }
-
-    @Then("I should be redirected to a page containing {string}")
-    public void iShouldBeRedirectedToAPageContaining(String expected) {
-        BrowserUtils.waitFor(2);
-        String current = driver.getCurrentUrl().toLowerCase();
-        System.out.println("[DEBUG] Asserting URL contains '" + expected + "': " + current);
-        Assert.assertTrue(
-                "Beklenen '" + expected + "' içermiyor: " + current,
-                current.contains(expected.toLowerCase())
-        );
-        // test sonunda istersen kapatıp ana pencereye dönebilirsin:
-        // driver.close();
-        // driver.switchTo().window(mainWindow);
     }
 }

@@ -8,6 +8,7 @@ target/
 *.iws
 *.iml
 *.ipr
+project_structure.txt
 
 ### Eclipse ###
 .apt_generated
