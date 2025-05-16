@@ -14,7 +14,7 @@ public class FooterPage {
     @FindBy(xpath = "//div[contains(@class,'style_footerItems__wuNdf')]")
     public List<WebElement> footerLinks;
 
-    // Sosyal medya ikonları (her biri <a> elementidir)
+    // Social media icons (each is an <a> element)
     @FindBy(xpath = "//div[contains(@class,'style_footerSocialMediaIconContainer__Bp9ct')]//a[contains(@href,'facebook.com')]")
     public WebElement facebookIcon;
 

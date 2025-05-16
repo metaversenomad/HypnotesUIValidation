@@ -12,6 +12,9 @@ public class DriverUtils {
     // Thread-local WebDriver instance
     private static InheritableThreadLocal<WebDriver> driverPool = new InheritableThreadLocal<>();
 
+    // Private constructor to prevent instantiation
+    private DriverUtils() {}
+
     /**
      * Returns the WebDriver instance for the current thread.
      * If no WebDriver instance exists, creates a new one based on the browser type.
@@ -19,9 +22,8 @@ public class DriverUtils {
      */
     public static WebDriver getDriver() {
 
-        // If thread-local driver does not exist, a new one will be created
         if (driverPool.get() == null) {
-            String browserType = ConfigReader.getConfigProperty("browser").toLowerCase();
+            String browserType = ConfigReader.getProperty("browser").toLowerCase();
 
             switch (browserType) {
                 case "chrome":
@@ -38,7 +40,6 @@ public class DriverUtils {
                     throw new RuntimeException("Invalid browser type: " + browserType);
             }
 
-            // Timeout (implicit wait) for WebDriver and maximize the window
             driverPool.get().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
             driverPool.get().manage().window().maximize();
         }
